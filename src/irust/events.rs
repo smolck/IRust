@@ -135,7 +135,7 @@ impl IRust {
             )?;
             self.terminal.clear(ClearType::FromCursorDown)?;
             self.buffer = up.clone();
-            self.internal_cursor.buffer_pos = self.buffer.len();
+            self.internal_cursor.buffer_pos = StringTools::chars_count(&self.buffer);
 
             let overflow = self.screen_height_overflow_by_str(&up);
 
@@ -162,7 +162,7 @@ impl IRust {
             )?;
             self.terminal.clear(ClearType::FromCursorDown)?;
             self.buffer = down.clone();
-            self.internal_cursor.buffer_pos = self.buffer.len();
+            self.internal_cursor.buffer_pos = StringTools::chars_count(&self.buffer);
 
             let overflow = self.screen_height_overflow_by_str(&down);
 
@@ -287,7 +287,7 @@ impl IRust {
             let distance_to_end = {
                 let c1 =
                     self.internal_cursor.current_bounds_mut().1 - self.internal_cursor.screen_pos.0;
-                let c2 = self.buffer.len() - self.internal_cursor.buffer_pos;
+                let c2 = StringTools::chars_count(&self.buffer) - self.internal_cursor.buffer_pos;
                 std::cmp::min(c1, c2)
             };
             if distance_to_end != 0 {

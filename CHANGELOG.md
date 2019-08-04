@@ -1,3 +1,18 @@
+**0.6.13**
+- Use `chars_count` instead of `len` to handle special chars
+
+**0.6.12**
+- Fix line end detection
+
+**0.6.11**
+- Warn about empty outputs
+- Disable cargo warnings
+- Handle main panic
+- Bug fixes
+
+**0.6.10**
+- Fix scrolling bug
+
 **0.6.9**
 - Refactor code
 - Use `once_cell` crate for globals
