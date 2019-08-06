@@ -62,8 +62,17 @@ impl StringTools {
         *buffer = buffer_chars.into_iter().collect();
     }
 
+    pub fn get_char_at_idx(buffer: &str, idx: usize) -> Option<char> {
+        let buffer_chars: Vec<char> = buffer.chars().collect();
+        buffer_chars.into_iter().nth(idx)
+    }
+
     pub fn chars_count(buffer: &str) -> usize {
         buffer.chars().count()
+    }
+
+    pub fn new_lines_count(buffer: &str) -> usize {
+        buffer.chars().filter(|c| c == &'\n').count()
     }
 
     pub fn is_multiline(string: &str) -> bool {

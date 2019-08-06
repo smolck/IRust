@@ -43,6 +43,10 @@ impl Printer {
         self.inner.push(output);
     }
 
+    pub fn pop(&mut self) -> Option<PrinterItem> {
+        self.inner.pop()
+    }
+
     pub fn append(&mut self, other: &mut Self) {
         self.inner.append(&mut other.inner);
     }
@@ -96,6 +100,23 @@ impl PrinterItem {
 }
 
 impl IRust {
+    pub fn print(&mut self, printer: Printer) -> Result<(), IRustError> {
+        let print_with_color = |elem: PrinterItem, color: Color| {
+            let _ = self.color.set_fg(color);
+            let _ = self.terminal.write(elem.string);
+        };
+
+        for elem in printer {
+            match elem.out_type {
+                PrinterItemType::Custom(color) => print_with_color(elem, color),
+                PrinterItemType::Empty => {}
+                _ => {}
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn write_out(&mut self) -> Result<(), IRustError> {
         for output in self.printer.clone() {
             let color = match output.out_type {

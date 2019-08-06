@@ -1,5 +1,6 @@
 use super::cursor::Move;
 use super::racer::Cycle;
+use crate::irust::highlight::highlight;
 use crate::irust::printer::{Printer, PrinterItem, PrinterItemType};
 use crate::irust::{IRust, IRustError};
 use crate::utils::StringTools;
@@ -7,6 +8,23 @@ use crossterm::ClearType;
 
 impl IRust {
     pub fn handle_character(&mut self, c: char) -> Result<(), IRustError> {
+        self.terminal.clear(ClearType::FromCursorDown)?;
+        self.move_cursor_to(
+            self.internal_cursor.lock_pos.0,
+            self.internal_cursor.lock_pos.1,
+        )?;
+
+        StringTools::insert_at_char_idx(&mut self.buffer, self.internal_cursor.buffer_pos, c);
+        self.internal_cursor.move_buffer_cursor_right();
+
+        let input = highlight(&self.buffer);
+
+        self.set_screen_cursor();
+        self.print(input)?;
+
+        Ok(())
+    }
+    pub fn _handle_character(&mut self, c: char) -> Result<(), IRustError> {
         // clear suggestion
         self.clear_suggestion()?;
 
@@ -39,6 +57,12 @@ impl IRust {
 
         // handle incomplete input
         if self.incomplete_input() {
+            StringTools::insert_at_char_idx(
+                &mut self.buffer,
+                self.internal_cursor.buffer_pos,
+                '\n',
+            );
+            self.internal_cursor.move_buffer_cursor_right();
             self.handle_incomplete_input()?;
             return Ok(());
         }
@@ -174,18 +198,30 @@ impl IRust {
     }
 
     pub fn handle_left(&mut self) -> Result<(), IRustError> {
-        self.clear_suggestion()?;
+        //self.clear_suggestion()?;
 
         if self.internal_cursor.buffer_pos > 0 {
-            self.move_cursor_left(Move::Free)?;
+            //self.move_cursor_left(Move::Free)?;
             self.internal_cursor.move_buffer_cursor_left();
+            self.cursor.move_left(1);
+            if StringTools::get_char_at_idx(&self.buffer, self.internal_cursor.buffer_pos)
+                == Some('\n')
+            {
+                self.cursor.move_up(1);
+            }
         }
         Ok(())
     }
 
     pub fn handle_right(&mut self) -> Result<(), IRustError> {
         if !self.at_line_end() {
-            self.move_cursor_right()?;
+            //self.move_cursor_right()?;
+            self.cursor.move_right(1);
+            if StringTools::get_char_at_idx(&self.buffer, self.internal_cursor.buffer_pos)
+                == Some('\n')
+            {
+                self.cursor.move_down(1);
+            }
             self.internal_cursor.move_buffer_cursor_right();
         } else {
             let _ = self.use_suggestion();

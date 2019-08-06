@@ -193,4 +193,14 @@ impl IRust {
         self.internal_cursor.reset_position();
         Ok(())
     }
+
+    pub fn set_screen_cursor(&mut self) {
+        //  x = lock_pos.0 + 4(In: ) + buffer chars - '\n'n
+        //  y = lock_pos.1 + '\n'n
+        self.internal_cursor.screen_pos.0 = self.internal_cursor.lock_pos.0
+            + StringTools::chars_count(&self.buffer)
+            - StringTools::new_lines_count(&self.buffer);
+        self.internal_cursor.screen_pos.1 =
+            self.internal_cursor.lock_pos.1 + StringTools::new_lines_count(&self.buffer);
+    }
 }

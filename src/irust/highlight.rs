@@ -29,5 +29,7 @@ pub fn highlight(c: &str) -> Printer {
         printer.add_new_line(1);
     }
 
+    printer.pop();
+
     printer
 }
