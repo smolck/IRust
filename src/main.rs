@@ -1,5 +1,6 @@
 mod args;
 mod irust;
+mod log;
 mod utils;
 
 use crate::args::handle_args;

@@ -11,8 +11,30 @@ impl IRust {
         StringTools::insert_at_char_idx(&mut self.buffer, self.internal_cursor.buffer_pos, c);
         self.internal_cursor.move_buffer_cursor_right();
 
+        // check if we will scroll
+        //crate::log!("screen_pos: {:?}\nsize: {:?}", self.internal_cursor.screen_pos, self.size);
+
         self.actual_print();
-        self.cursor.move_right(1);
+        crate::log!(
+            "screen_pos: {:?}\nsize: {:?}",
+            self.internal_cursor.screen_pos,
+            self.size
+        );
+        if self.internal_cursor.screen_pos == (self.size.0 - 1, self.size.1 - 1) {
+            self.internal_cursor.lock_pos.1 -= 1;
+        }
+
+        if self.internal_cursor.screen_pos.0 == self.size.0 - 1 {
+            self.internal_cursor.screen_pos.0 = 0;
+            self.internal_cursor.screen_pos.1 += 1;
+            self.internal_cursor.screen_pos.1 =
+                std::cmp::min(self.internal_cursor.screen_pos.1, self.size.1 - 1);
+        } else {
+            self.cursor.move_right(1);
+            self.internal_cursor.screen_pos.0 += 1;
+        }
+        self.goto_cursor();
+        //crate::log!("{}", self.internal_cursor.screen_pos.0);
 
         Ok(())
     }
@@ -60,7 +82,11 @@ impl IRust {
                 self.internal_cursor.lock_pos.1 -= 1;
             }
             self.internal_cursor.move_buffer_cursor_right();
+
             self.cursor.move_down(1);
+            self.internal_cursor.screen_pos.1 += 1;
+
+            self.actual_print();
             //self.handle_incomplete_input()?;
             return Ok(());
         }
@@ -96,13 +122,15 @@ impl IRust {
         }
 
         self.actual_print();
+
         self.cursor.move_right(4);
+        self.internal_cursor.screen_pos.0 = 4;
 
         Ok(())
     }
 
     fn incomplete_input(&self) -> bool {
-        self.at_line_end() && StringTools::unmatched_brackets(&self.buffer)
+        StringTools::unmatched_brackets(&self.buffer)
             || self
                 .buffer
                 .trim_end()
@@ -158,6 +186,14 @@ impl IRust {
             self.buffer = up.clone();
             self.internal_cursor.buffer_pos = StringTools::chars_count(&self.buffer);
 
+            let overflow = (self.internal_cursor.lock_pos.1
+                + 1
+                + StringTools::new_lines_count(&self.buffer)) as i16
+                - self.size.1 as i16;
+            if overflow > 0 {
+                self.internal_cursor.lock_pos.1 -= overflow as usize;
+            }
+
             self.actual_print();
             self.set_screen_cursor();
             self.goto_cursor();
@@ -182,6 +218,14 @@ impl IRust {
             self.buffer = down.clone();
             self.internal_cursor.buffer_pos = StringTools::chars_count(&self.buffer);
 
+            let overflow = (self.internal_cursor.lock_pos.1
+                + 1
+                + StringTools::new_lines_count(&self.buffer)) as i16
+                - self.size.1 as i16;
+            if overflow > 0 {
+                self.internal_cursor.lock_pos.1 -= overflow as usize;
+            }
+
             self.actual_print();
             self.set_screen_cursor();
             self.goto_cursor();
@@ -201,8 +245,17 @@ impl IRust {
                 == Some('\n')
             {
                 self.cursor.move_up(1);
+                self.internal_cursor.screen_pos.1 -= 1;
             } else {
-                self.cursor.move_left(1);
+                if self.internal_cursor.screen_pos.0 == 0 {
+                    self.internal_cursor.screen_pos.0 = self.size.0 - 1;
+                    self.internal_cursor.screen_pos.1 -= 1;
+                } else {
+                    self.internal_cursor.screen_pos.0 -= 1;
+                }
+                self.goto_cursor();
+                //self.cursor.move_left(1);
+                //self.internal_cursor.screen_pos.0 -= 1;
             }
         }
         Ok(())
@@ -216,8 +269,16 @@ impl IRust {
                 == Some('\n')
             {
                 self.cursor.move_down(1);
+                self.internal_cursor.screen_pos.1 += 1;
             } else {
-                self.cursor.move_right(1);
+                if self.internal_cursor.screen_pos.0 + 1 == self.size.0 {
+                    self.internal_cursor.screen_pos.0 = 0;
+                    self.internal_cursor.screen_pos.1 += 1;
+                } else {
+                    self.cursor.move_right(1);
+                    self.internal_cursor.screen_pos.0 += 1;
+                }
+                self.goto_cursor();
             }
 
             self.internal_cursor.move_buffer_cursor_right();
@@ -245,20 +306,39 @@ impl IRust {
 
             if removed_char == Some('\n') {
                 self.cursor.move_up(1);
+                self.internal_cursor.screen_pos.1 -= 1;
             } else {
-                self.cursor.move_left(1);
+                if self.internal_cursor.screen_pos.0 == 0 {
+                    self.internal_cursor.screen_pos.0 = self.size.0 - 1;
+                    self.internal_cursor.screen_pos.1 -= 1;
+                } else {
+                    self.internal_cursor.screen_pos.0 -= 1;
+                }
+                self.goto_cursor();
             }
 
-            self.terminal.write(" ");
-            self.cursor.move_left(1);
+            //self.terminal.write(" ");
+            //self.cursor.move_left(1);
+            //self.internal_cursor.screen_pos.0 -= 1;
         }
         Ok(())
     }
 
     pub fn handle_del(&mut self) -> Result<(), IRustError> {
-        if self.internal_cursor.buffer_pos > 0 {
-            self.delete_char()?;
+        if !self.buffer.is_empty() {
+            StringTools::remove_at_char_idx(&mut self.buffer, self.internal_cursor.buffer_pos);
+            self.actual_print();
         }
+
+        // if removed_char == Some('\n') {
+        //     self.cursor.move_up(1);
+        // } else {
+        //     //self.cursor.move_left(1);
+        // }
+        //
+        // self.terminal.write(" ");
+        // self.cursor.move_left(1);
+
         Ok(())
     }
 
@@ -266,11 +346,18 @@ impl IRust {
         if self.buffer.is_empty() {
             self.exit()?;
         } else {
-            self.clear_suggestion()?;
+            //self.clear_suggestion()?;
 
-            self.buffer.clear();
             self.write_newline()?;
-            self.write_in()?;
+            self.buffer.clear();
+            self.internal_cursor.buffer_pos = 0;
+
+            //self.write_in()?;
+            self.color.set_fg(crossterm::Color::Yellow);
+            self.terminal.write("In: ");
+            self.color.reset();
+            //self.cursor.move_right(4);
+            self.internal_cursor.screen_pos.0 = 4;
         }
 
         Ok(())

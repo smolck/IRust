@@ -102,9 +102,9 @@ impl PrinterItem {
 impl IRust {
     pub fn actual_print(&mut self) -> Result<(), IRustError> {
         self.cursor.save_position();
-        self.terminal.clear(ClearType::FromCursorDown)?;
 
         self.move_cursor_to(0, self.internal_cursor.lock_pos.1)?;
+        self.terminal.clear(ClearType::FromCursorDown)?;
 
         self.color.set_fg(Color::Yellow);
         self.terminal.write("In: ");

@@ -61,7 +61,8 @@ impl IRust {
         let options = Options::new().unwrap_or_default();
         let debouncer = Debouncer::new();
         let racer = if options.enable_racer {
-            Racer::start()
+            //Racer::start()
+            Err(IRustError::RacerDisabled)
         } else {
             Err(IRustError::RacerDisabled)
         };
@@ -93,6 +94,7 @@ impl IRust {
         self.debouncer.run();
         self.welcome()?;
         self.write_in()?;
+        self.internal_cursor.screen_pos.0 = 4;
         Ok(())
     }
 

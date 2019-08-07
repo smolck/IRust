@@ -42,9 +42,21 @@ impl IRust {
     pub fn write_newline(&mut self) -> Result<(), IRustError> {
         self.internal_cursor.screen_pos.0 = 0;
         self.internal_cursor.screen_pos.1 += 1;
+
+        self.internal_cursor.screen_pos.1 =
+            std::cmp::min(self.internal_cursor.screen_pos.1, self.size.1 - 1);
+
         self.internal_cursor.add_bounds();
+
         self.internal_cursor.lock_pos.1 =
             self.internal_cursor.lock_pos.1 + StringTools::new_lines_count(&self.buffer) + 1;
+
+        let overflow = self.internal_cursor.lock_pos.1 as i16 + 1 - self.size.1 as i16;
+        if overflow > 0 {
+            self.terminal.scroll_up(overflow);
+            self.internal_cursor.lock_pos.1 -= overflow as usize;
+        }
+
         self.move_cursor_to(0, self.internal_cursor.lock_pos.1);
         // y should never exceed screen height
         // if self.internal_cursor.screen_pos.1 == self.size.1 {
