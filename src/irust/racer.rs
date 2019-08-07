@@ -186,10 +186,16 @@ impl IRust {
         } else {
             // Auto complete rust code
             let mut racer = self.racer.as_mut()?;
-            racer.cursor.0 = self.repl.body.len();
+            racer.cursor.0 = self.repl.body.len() + StringTools::new_lines_count(&self.buffer);
 
-            racer.cursor.1 =
-                StringTools::chars_count(&self.buffer) - StringTools::new_lines_count(&self.buffer);
+            racer.cursor.1 = 0;
+            for c in self.buffer.chars() {
+                if c == '\n' {
+                    racer.cursor.1 = 0;
+                } else {
+                    racer.cursor.1 += 1;
+                }
+            }
 
             crate::log!("racer cursor: {:?}", &racer.cursor);
 
@@ -370,7 +376,11 @@ impl IRust {
             self.terminal.clear(ClearType::FromCursorDown)?;
 
             // write the suggestion
-            self.write(&suggestion)?;
+            self.terminal.write(&suggestion)?;
+            let chars_count = StringTools::chars_count(&suggestion);
+
+            self.internal_cursor.screen_pos.0 += chars_count;
+            self.goto_cursor();
 
             // Unlock racer suggestions update
             let _ = self.unlock_racer_update();

@@ -30,7 +30,6 @@ impl IRust {
             self.internal_cursor.screen_pos.1 =
                 std::cmp::min(self.internal_cursor.screen_pos.1, self.size.1 - 1);
         } else {
-            self.cursor.move_right(1);
             self.internal_cursor.screen_pos.0 += 1;
         }
         self.goto_cursor();
