@@ -43,11 +43,14 @@ impl IRust {
         self.internal_cursor.screen_pos.0 = 0;
         self.internal_cursor.screen_pos.1 += 1;
         self.internal_cursor.add_bounds();
+        self.internal_cursor.lock_pos.1 =
+            self.internal_cursor.lock_pos.1 + StringTools::new_lines_count(&self.buffer) + 1;
+        self.move_cursor_to(0, self.internal_cursor.lock_pos.1);
         // y should never exceed screen height
-        if self.internal_cursor.screen_pos.1 == self.size.1 {
-            self.scroll_up(1);
-        }
-        self.goto_cursor()?;
+        // if self.internal_cursor.screen_pos.1 == self.size.1 {
+        //     self.scroll_up(1);
+        // }
+        // self.goto_cursor()?;
         Ok(())
     }
 

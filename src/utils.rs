@@ -52,14 +52,18 @@ impl StringTools {
         *buffer = buffer_chars.into_iter().collect();
     }
 
-    pub fn remove_at_char_idx(buffer: &mut String, idx: usize) {
+    pub fn remove_at_char_idx(buffer: &mut String, idx: usize) -> Option<char> {
         let mut buffer_chars: Vec<char> = buffer.chars().collect();
 
+        let mut removed_char = None;
+
         if buffer_chars.len() > idx {
-            buffer_chars.remove(idx);
+            removed_char = Some(buffer_chars.remove(idx));
         }
 
         *buffer = buffer_chars.into_iter().collect();
+
+        removed_char
     }
 
     pub fn get_char_at_idx(buffer: &str, idx: usize) -> Option<char> {

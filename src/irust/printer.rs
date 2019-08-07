@@ -104,10 +104,11 @@ impl IRust {
         self.cursor.save_position();
         self.terminal.clear(ClearType::FromCursorDown)?;
 
-        self.move_cursor_to(
-            self.internal_cursor.lock_pos.0,
-            self.internal_cursor.lock_pos.1,
-        )?;
+        self.move_cursor_to(0, self.internal_cursor.lock_pos.1)?;
+
+        self.color.set_fg(Color::Yellow);
+        self.terminal.write("In: ");
+        self.color.reset();
 
         let input = super::highlight::highlight(&self.buffer);
 
@@ -181,15 +182,16 @@ impl IRust {
     }
 
     pub fn write_in(&mut self) -> Result<(), IRustError> {
-        self.internal_cursor.screen_pos.0 = 0;
-        self.goto_cursor()?;
+        //self.internal_cursor.screen_pos.0 = 0;
+        //self.goto_cursor()?;
+        self.move_cursor_to(0, self.internal_cursor.lock_pos.1)?;
         self.terminal.clear(ClearType::FromCursorDown)?;
         self.color.set_fg(self.options.input_color)?;
-        self.write(IN)?;
+        self.terminal.write(IN)?;
         //self.internal_cursor.screen_pos.0 = 4;
         *self.internal_cursor.current_bounds_mut() = (4, self.size.0);
         self.internal_cursor.buffer_pos = 0;
-        self.internal_cursor.lock_pos = (4, self.internal_cursor.screen_pos.1);
+        //self.internal_cursor.lock_pos = (4, self.internal_cursor.screen_pos.1);
         self.color.reset()?;
         Ok(())
     }

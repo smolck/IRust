@@ -85,6 +85,7 @@ impl IRust {
 
         // ensure buffer is cleaned
         self.buffer.clear();
+        self.internal_cursor.buffer_pos = 0;
         // update history current
         self.history.update_current(&self.buffer);
 
@@ -94,8 +95,8 @@ impl IRust {
             self.write_out()?;
         }
 
-        // new input
-        self.write_in()?;
+        self.actual_print();
+        self.cursor.move_right(4);
 
         Ok(())
     }
@@ -147,22 +148,26 @@ impl IRust {
 
     pub fn handle_up(&mut self) -> Result<(), IRustError> {
         if let Some(up) = self.history.up() {
-            self.internal_cursor.reset_screen_cursor();
-            self.move_cursor_to(
-                self.internal_cursor.lock_pos.0,
-                self.internal_cursor.lock_pos.1,
-            )?;
-            self.terminal.clear(ClearType::FromCursorDown)?;
+            //self.internal_cursor.reset_screen_cursor();
+            // self.move_cursor_to(
+            //     self.internal_cursor.lock_pos.0,
+            //     self.internal_cursor.lock_pos.1,
+            // )?;
+            //self.terminal.clear(ClearType::FromCursorDown)?;
+
             self.buffer = up.clone();
             self.internal_cursor.buffer_pos = StringTools::chars_count(&self.buffer);
 
-            let overflow = self.screen_height_overflow_by_str(&up);
-
-            if overflow != 0 {
-                self.scroll_up(overflow);
-            }
-
-            self.write(&up)?;
+            self.actual_print();
+            self.set_screen_cursor();
+            self.goto_cursor();
+            // let overflow = self.screen_height_overflow_by_str(&up);
+            //
+            // if overflow != 0 {
+            //     self.scroll_up(overflow);
+            // }
+            //
+            // self.write(&up)?;
         }
 
         Ok(())
@@ -174,22 +179,12 @@ impl IRust {
         }
 
         if let Some(down) = self.history.down() {
-            self.internal_cursor.reset_screen_cursor();
-            self.move_cursor_to(
-                self.internal_cursor.lock_pos.0,
-                self.internal_cursor.lock_pos.1,
-            )?;
-            self.terminal.clear(ClearType::FromCursorDown)?;
             self.buffer = down.clone();
             self.internal_cursor.buffer_pos = StringTools::chars_count(&self.buffer);
 
-            let overflow = self.screen_height_overflow_by_str(&down);
-
-            if overflow != 0 {
-                self.scroll_up(overflow);
-            }
-
-            self.write(&down)?;
+            self.actual_print();
+            self.set_screen_cursor();
+            self.goto_cursor();
         }
 
         Ok(())
@@ -238,14 +233,22 @@ impl IRust {
 
             self.internal_cursor.move_buffer_cursor_left();
             //self.delete_char()?;
-            if !self.buffer.is_empty() {
-                StringTools::remove_at_char_idx(&mut self.buffer, self.internal_cursor.buffer_pos);
-            }
+            let removed_char = if !self.buffer.is_empty() {
+                StringTools::remove_at_char_idx(&mut self.buffer, self.internal_cursor.buffer_pos)
+            } else {
+                None
+            };
             // update histroy current
             self.history.update_current(&self.buffer);
 
             self.actual_print();
-            self.cursor.move_left(1);
+
+            if removed_char == Some('\n') {
+                self.cursor.move_up(1);
+            } else {
+                self.cursor.move_left(1);
+            }
+
             self.terminal.write(" ");
             self.cursor.move_left(1);
         }
