@@ -61,8 +61,8 @@ impl IRust {
         let options = Options::new().unwrap_or_default();
         let debouncer = Debouncer::new();
         let racer = if options.enable_racer {
-            //Racer::start()
-            Err(IRustError::RacerDisabled)
+            Racer::start()
+        //Err(IRustError::RacerDisabled)
         } else {
             Err(IRustError::RacerDisabled)
         };

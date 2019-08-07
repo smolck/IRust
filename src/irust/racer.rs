@@ -187,8 +187,11 @@ impl IRust {
             // Auto complete rust code
             let mut racer = self.racer.as_mut()?;
             racer.cursor.0 = self.repl.body.len();
-            // add +1 for the \t
-            racer.cursor.1 = StringTools::chars_count(&self.buffer) + 1;
+
+            racer.cursor.1 =
+                StringTools::chars_count(&self.buffer) - StringTools::new_lines_count(&self.buffer);
+
+            crate::log!("racer cursor: {:?}", &racer.cursor);
 
             self.repl
                 .exec_in_tmp_repl(self.buffer.clone(), move || -> Result<(), IRustError> {
@@ -237,7 +240,7 @@ impl IRust {
 
                 let overflow = self.screen_height_overflow_by_str(&suggestion);
 
-                self.write(&suggestion)?;
+                self.terminal.write(&suggestion)?;
 
                 self.reset_cursor_position()?;
                 self.cursor.show()?;

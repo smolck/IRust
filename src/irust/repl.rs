@@ -18,10 +18,10 @@ impl Repl {
 
     pub fn insert(&mut self, input: String) {
         for line in input.lines() {
-            let mut line = line.to_owned();
-            line.insert(0, '\t');
-            line.push('\n');
-            self.body.insert(self.cursor, line);
+            //let mut line = line.to_owned();
+            //line.insert(0, '\t');
+            //line.push('\n');
+            self.body.insert(self.cursor, line.to_owned());
             self.cursor += 1;
         }
     }

@@ -34,6 +34,7 @@ impl IRust {
             self.internal_cursor.screen_pos.0 += 1;
         }
         self.goto_cursor();
+        let _ = self.unlock_racer_update();
         //crate::log!("{}", self.internal_cursor.screen_pos.0);
 
         Ok(())
@@ -320,6 +321,7 @@ impl IRust {
             //self.terminal.write(" ");
             //self.cursor.move_left(1);
             //self.internal_cursor.screen_pos.0 -= 1;
+            let _ = self.unlock_racer_update();
         }
         Ok(())
     }
