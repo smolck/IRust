@@ -100,6 +100,26 @@ impl PrinterItem {
 }
 
 impl IRust {
+    pub fn actual_print(&mut self) -> Result<(), IRustError> {
+        self.cursor.save_position();
+        self.terminal.clear(ClearType::FromCursorDown)?;
+
+        self.move_cursor_to(
+            self.internal_cursor.lock_pos.0,
+            self.internal_cursor.lock_pos.1,
+        )?;
+
+        let input = super::highlight::highlight(&self.buffer);
+
+        //self.set_screen_cursor();
+
+        self.print(input)?;
+        self.cursor.reset_position();
+        //self.cursor.move_right(1);
+
+        Ok(())
+    }
+
     pub fn print(&mut self, printer: Printer) -> Result<(), IRustError> {
         let print_with_color = |elem: PrinterItem, color: Color| {
             let _ = self.color.set_fg(color);

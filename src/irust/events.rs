@@ -8,19 +8,11 @@ use crossterm::ClearType;
 
 impl IRust {
     pub fn handle_character(&mut self, c: char) -> Result<(), IRustError> {
-        self.terminal.clear(ClearType::FromCursorDown)?;
-        self.move_cursor_to(
-            self.internal_cursor.lock_pos.0,
-            self.internal_cursor.lock_pos.1,
-        )?;
-
         StringTools::insert_at_char_idx(&mut self.buffer, self.internal_cursor.buffer_pos, c);
         self.internal_cursor.move_buffer_cursor_right();
 
-        let input = highlight(&self.buffer);
-
-        self.set_screen_cursor();
-        self.print(input)?;
+        self.actual_print();
+        self.cursor.move_right(1);
 
         Ok(())
     }
@@ -53,7 +45,7 @@ impl IRust {
 
     pub fn handle_enter(&mut self) -> Result<(), IRustError> {
         // clear suggestion
-        self.clear_suggestion()?;
+        //self.clear_suggestion()?;
 
         // handle incomplete input
         if self.incomplete_input() {
@@ -62,8 +54,14 @@ impl IRust {
                 self.internal_cursor.buffer_pos,
                 '\n',
             );
+            // check for scroll
+            if self.cursor.pos().1 as usize == self.size.1 - 1 {
+                self.terminal.scroll_up(1);
+                self.internal_cursor.lock_pos.1 -= 1;
+            }
             self.internal_cursor.move_buffer_cursor_right();
-            self.handle_incomplete_input()?;
+            self.cursor.move_down(1);
+            //self.handle_incomplete_input()?;
             return Ok(());
         }
 
@@ -111,15 +109,15 @@ impl IRust {
     }
 
     fn handle_incomplete_input(&mut self) -> Result<(), IRustError> {
-        self.internal_cursor.current_bounds_mut().1 = self.internal_cursor.screen_pos.0 - 1;
-        self.internal_cursor.screen_pos.0 = 4;
-        self.internal_cursor.screen_pos.1 += 1;
-        if self.internal_cursor.screen_pos.1 == self.size.1 {
-            self.scroll_up(1);
-        }
-        self.internal_cursor.add_bounds();
-
-        self.goto_cursor()?;
+        // self.internal_cursor.current_bounds_mut().1 = self.internal_cursor.screen_pos.0 - 1;
+        // self.internal_cursor.screen_pos.0 = 4;
+        // self.internal_cursor.screen_pos.1 += 1;
+        // if self.internal_cursor.screen_pos.1 == self.size.1 {
+        //     self.scroll_up(1);
+        // }
+        // self.internal_cursor.add_bounds();
+        //
+        // self.goto_cursor()?;
         Ok(())
     }
 
@@ -203,11 +201,13 @@ impl IRust {
         if self.internal_cursor.buffer_pos > 0 {
             //self.move_cursor_left(Move::Free)?;
             self.internal_cursor.move_buffer_cursor_left();
-            self.cursor.move_left(1);
+
             if StringTools::get_char_at_idx(&self.buffer, self.internal_cursor.buffer_pos)
                 == Some('\n')
             {
                 self.cursor.move_up(1);
+            } else {
+                self.cursor.move_left(1);
             }
         }
         Ok(())
@@ -216,12 +216,15 @@ impl IRust {
     pub fn handle_right(&mut self) -> Result<(), IRustError> {
         if !self.at_line_end() {
             //self.move_cursor_right()?;
-            self.cursor.move_right(1);
+
             if StringTools::get_char_at_idx(&self.buffer, self.internal_cursor.buffer_pos)
                 == Some('\n')
             {
                 self.cursor.move_down(1);
+            } else {
+                self.cursor.move_right(1);
             }
+
             self.internal_cursor.move_buffer_cursor_right();
         } else {
             let _ = self.use_suggestion();
@@ -231,11 +234,20 @@ impl IRust {
 
     pub fn handle_backspace(&mut self) -> Result<(), IRustError> {
         if self.internal_cursor.buffer_pos > 0 {
-            self.move_cursor_left(Move::Modify)?;
+            //self.move_cursor_left(Move::Modify)?;
+
             self.internal_cursor.move_buffer_cursor_left();
-            self.delete_char()?;
+            //self.delete_char()?;
+            if !self.buffer.is_empty() {
+                StringTools::remove_at_char_idx(&mut self.buffer, self.internal_cursor.buffer_pos);
+            }
             // update histroy current
             self.history.update_current(&self.buffer);
+
+            self.actual_print();
+            self.cursor.move_left(1);
+            self.terminal.write(" ");
+            self.cursor.move_left(1);
         }
         Ok(())
     }
